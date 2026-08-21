@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Polaris.Content;
 
 namespace Polaris.Lang
 {
@@ -25,7 +26,9 @@ namespace Polaris.Lang
 
         const string JapaneseCode = "ja";
 
-        static readonly Dictionary<string, Entry> table = new(StringComparer.Ordinal);
+        // Aggregate：冲突不在这里立刻抛，由下面手动调 PlangConflictGuard.Record 收集，跟以前行为一致。
+        static readonly ContentCatalog<string, Entry> table =
+            new(StringComparer.Ordinal, ContentConflictPolicy.Aggregate);
 
         /// <summary>
         /// 注册一个 Key 的文案（<paramref name="values"/> 应只含编辑器里启用的语言，语言代码大小写不敏感）。
@@ -41,26 +44,16 @@ namespace Polaris.Lang
 
             // 扫描期间由 PlangRegistryScanner 点名；绕过扫描直接调这里时退回调用方程序集。
             Assembly source = PlangConflictGuard.CurrentSource ?? Assembly.GetCallingAssembly();
+            var entry = new Entry { Neutral = neutralValue ?? "", Values = Normalize(values), Source = source };
 
-            if (table.TryGetValue(key, out Entry existing))
+            bool registered = table.TryRegister(key, entry, source.FullName,
+                warning => Plugin.Logger.LogWarning($"[PolarisLang] {warning}"));
+
+            if (!registered)
             {
-                if (existing.Source != source)
-                {
-                    PlangConflictGuard.Record(key, existing.Source, source);
-                    return;
-                }
-
-                Plugin.Logger.LogWarning(
-                    $"[PolarisLang] Several .plang files inside {source.GetName().Name} registered the same key \"{key}\"; "
-                    + "the later registration overrode the earlier one.");
+                table.TryGet(key, out Entry existing);
+                PlangConflictGuard.Record(key, existing.Source, source);
             }
-
-            table[key] = new Entry
-            {
-                Neutral = neutralValue ?? "",
-                Values = Normalize(values),
-                Source = source,
-            };
         }
 
         /// <summary>把注册进来的文案拷进一份大小写不敏感的字典，顺带把 null 文案归一成空串。</summary>
@@ -87,7 +80,7 @@ namespace Polaris.Lang
         /// </summary>
         public static string Get(string key)
         {
-            if (string.IsNullOrEmpty(key) || !table.TryGetValue(key, out Entry entry))
+            if (string.IsNullOrEmpty(key) || !table.TryGet(key, out Entry entry))
             {
                 return null;
             }

@@ -115,7 +115,7 @@ namespace Polaris.Lang
                     continue;
                 }
 
-                entry.Values[lang] = valueEl.Value ?? "";
+                entry.Values[lang] = valueEl.Value;
             }
 
             return entry;
@@ -125,7 +125,7 @@ namespace Polaris.Lang
         static PlangEntry ParseEntryV1(XElement el, string key)
         {
             bool isLong = (string)el.Attribute("Type") == "Long";
-            string value = isLong ? el.Value : (string)el.Attribute("Value") ?? "";
+            string value = isLong ? el.Value : ((string)el.Attribute("Value") ?? "");
 
             return new PlangEntry(key, value, (string)el.Attribute("Comment"));
         }
