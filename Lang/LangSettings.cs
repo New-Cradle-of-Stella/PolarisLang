@@ -4,7 +4,7 @@ using Polaris.Settings;
 namespace Polaris.Lang
 {
     /// <summary>
-    /// 模组文案的语言。<see cref="Auto"/> 跟随游戏，其余各自钉死在一个语言代码上。
+    /// 模组文案的语言：<see cref="Auto"/> 跟随游戏，其余各自钉死在一个语言代码上。
     /// 只列游戏自带语言包对应的那几门，不随 <c>.plang</c> 里出现的语言代码动态生成选项。
     /// </summary>
     public enum ModTextLanguage
